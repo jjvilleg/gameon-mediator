@@ -15,6 +15,8 @@
  *******************************************************************************/
 package org.gameontext.mediator;
 
+import java.net.URL;
+import org.gameontext.mediator.client.PlayerClientRemoteInterface;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.logging.Level;
@@ -37,6 +39,10 @@ import javax.ws.rs.client.ResponseProcessingException;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+
+import org.eclipse.microprofile.rest.client.RestClientBuilder;
+import org.eclipse.microprofile.rest.client.inject.RestClient;
+import org.eclipse.microprofile.rest.client.inject.RestClient;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 
@@ -74,7 +80,10 @@ public class PlayerClient {
      * @see WebTarget
      */
     WebTarget root;
+    
+    //WebTarget tempRoot;
 
+    PlayerClientRemoteInterface customRestClient;
 
     public class TheNotVerySensibleHostnameVerifier implements HostnameVerifier {
         @Override
@@ -102,6 +111,17 @@ public class PlayerClient {
                                      .property("com.ibm.ws.jaxrs.client.ssl.config", "DefaultSSLSettings")
                                      .property("com.ibm.ws.jaxrs.client.disableCNCheck", true)
                                      .build();
+    
+        URL customURL = null;
+        try {
+            customURL = new URL(playerLocation);
+            customRestClient = RestClientBuilder.newBuilder()
+                                          .baseUrl(customURL)
+                                          .build(PlayerClientRemoteInterface.class);
+            //this.tempRoot = customRestClient.target(playerLocation);
+        }
+        catch (Exception e) {}
+
 
         client.register(JsonProvider.class);
 
@@ -138,7 +158,8 @@ public class PlayerClient {
         try {
             // Make PUT request using the specified target, get result as a
             // string containing JSON
-            String resultString = target.request(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON)
+            
+            /*String resultString = target.request(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON)
                     .header("Content-type", "application/json").put(Entity.json(parameter), String.class);
 
             Log.log(Level.INFO, this, "response was {0}", resultString);
@@ -149,7 +170,9 @@ public class PlayerClient {
 
             Log.log(Level.INFO, this, "response location {0}", location);
             //location should match the 'newRoomId' unless we didn't win the race to change the location.
-            return location;
+            return location;*/
+            customRestClient.updatePlayerLocation(playerId, parameter);
+            
         } catch (ResponseProcessingException rpe) {
             Response response = rpe.getResponse();
             Log.log(Level.WARNING, this, "Exception changing player location,  uri: {0} resp code: {1}",
